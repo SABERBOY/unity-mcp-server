@@ -233,6 +233,14 @@ If Unity MCP helps your workflow, consider supporting its development! Your supp
 
 **Sponsor tiers include priority feature requests** — your ideas get bumped up the roadmap! Check out the tiers on [GitHub Sponsors](https://github.com/sponsors/AnkleBreaker-Studio) or [Patreon](https://www.patreon.com/AnkleBreakerStudio).
 
+## What's New in v2.20.0
+
+- **MPPM route overrides** — Fixed Multiplayer Play Mode tools (`unity_mppm_*`) failing via the advanced tool proxy by adding explicit route mappings for `scenario/*` endpoints
+- **Hub CLI resilience** — Rewrote Unity Hub CLI wrapper with strategy-based fallback (modern → legacy syntax), better error recovery from non-zero exit codes, and 10MB output buffer
+- **Graphics capture validation** — `unity_graphics_scene_capture` and `unity_graphics_game_capture` now validate base64 data, strip data URI prefixes, and return informative errors instead of crashing the MCP transport
+- **Property type coercion** — `unity_component_set_property` now auto-converts string values like `"5.0"` to proper numeric types, preventing C# parsing failures across different locales
+- **Response size protection** — Global truncation safety net prevents oversized responses (large hierarchies, asset lists) from causing Write EOF errors on the stdio transport
+
 ## License
 
 MIT with Attribution Requirement — see [LICENSE](LICENSE)

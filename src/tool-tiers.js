@@ -17,11 +17,28 @@
 import { sendCommand } from "./unity-editor-bridge.js";
 
 /**
+ * Explicit route overrides for tools whose API endpoints
+ * don't follow the standard name → route derivation pattern.
+ * E.g. unity_mppm_* tools use "scenario/*" endpoints on the C# side.
+ */
+const ROUTE_OVERRIDES = {
+  unity_mppm_list_scenarios: "scenario/list",
+  unity_mppm_status: "scenario/status",
+  unity_mppm_activate_scenario: "scenario/activate",
+  unity_mppm_start: "scenario/start",
+  unity_mppm_stop: "scenario/stop",
+  unity_mppm_info: "scenario/info",
+};
+
+/**
  * Derive an HTTP route from a tool name.
  * unity_terrain_raise_lower → terrain/raise-lower
  * unity_animation_create_clip → animation/create-clip
  */
 function toolNameToRoute(toolName) {
+  // Check explicit overrides first (for tools whose API routes don't match their name)
+  if (ROUTE_OVERRIDES[toolName]) return ROUTE_OVERRIDES[toolName];
+
   // Remove unity_ prefix
   const withoutPrefix = toolName.replace(/^unity_/, "");
   // Split into parts: first part is category, rest is action

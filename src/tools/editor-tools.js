@@ -187,7 +187,25 @@ export const editorTools = [
       },
       required: ["gameObjectPath", "componentType", "propertyName", "value"],
     },
-    handler: async (params) => JSON.stringify(await bridge.setComponentProperty(params), null, 2),
+    handler: async (params) => {
+      // Type coercion: MCP clients may send numeric values as strings (e.g. "5.0" instead of 5).
+      // The C# plugin's SetSerializedValue uses Convert.ToSingle/ToInt32 which can fail
+      // with locale-dependent parsing. Coerce string values that look like numbers here.
+      if (params.value !== undefined && params.value !== null && typeof params.value === "string") {
+        const trimmed = params.value.trim();
+        // Check if it's a numeric string (int or float)
+        if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+          params.value = Number(trimmed);
+        }
+        // Check for boolean strings
+        else if (trimmed.toLowerCase() === "true") {
+          params.value = true;
+        } else if (trimmed.toLowerCase() === "false") {
+          params.value = false;
+        }
+      }
+      return JSON.stringify(await bridge.setComponentProperty(params), null, 2);
+    },
   },
   {
     name: "unity_component_set_reference",
@@ -2735,10 +2753,15 @@ export const editorTools = [
     handler: async (params) => {
       const result = await bridge.captureSceneViewGraphics(params);
       if (result.error) return JSON.stringify(result, null, 2);
+      if (!result.base64 || typeof result.base64 !== "string") {
+        return JSON.stringify({ error: "Scene capture returned no image data", ...result }, null, 2);
+      }
       const metadata = { ...result };
       delete metadata.base64;
+      // Validate base64 is clean (no data URI prefix)
+      const b64 = result.base64.replace(/^data:image\/\w+;base64,/, "");
       return [
-        { type: "image", data: result.base64, mimeType: "image/png" },
+        { type: "image", data: b64, mimeType: "image/png" },
         { type: "text", text: JSON.stringify(metadata, null, 2) },
       ];
     },
@@ -2768,10 +2791,14 @@ export const editorTools = [
     handler: async (params) => {
       const result = await bridge.captureGameViewGraphics(params);
       if (result.error) return JSON.stringify(result, null, 2);
+      if (!result.base64 || typeof result.base64 !== "string") {
+        return JSON.stringify({ error: "Game capture returned no image data", ...result }, null, 2);
+      }
       const metadata = { ...result };
       delete metadata.base64;
+      const b64 = result.base64.replace(/^data:image\/\w+;base64,/, "");
       return [
-        { type: "image", data: result.base64, mimeType: "image/png" },
+        { type: "image", data: b64, mimeType: "image/png" },
         { type: "text", text: JSON.stringify(metadata, null, 2) },
       ];
     },

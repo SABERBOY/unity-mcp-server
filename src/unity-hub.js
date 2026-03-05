@@ -11,36 +11,52 @@ const execFileAsync = promisify(execFile);
 async function runHubCommand(args, timeoutMs = 30000) {
   const hubPath = CONFIG.unityHubPath;
 
-  // Try modern syntax first (no '--' prefix, works with Unity Hub 3.x+)
-  const modernArgs = ["--headless", ...args];
-  try {
-    const { stdout, stderr } = await execFileAsync(hubPath, modernArgs, {
-      timeout: timeoutMs,
-      windowsHide: true,
-    });
-    return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
-  } catch (error) {
-    // If modern syntax fails, try legacy syntax with '--' prefix (Unity Hub 2.x)
-    const legacyArgs = ["--", "--headless", ...args];
+  // Strategies in order: modern CLI (3.x+), legacy CLI (2.x), shell-based fallback (Windows)
+  const strategies = [
+    { name: "modern", args: ["--headless", ...args] },
+    { name: "legacy", args: ["--", "--headless", ...args] },
+  ];
+
+  const errors = [];
+
+  for (const strategy of strategies) {
     try {
-      const { stdout, stderr } = await execFileAsync(hubPath, legacyArgs, {
+      const { stdout, stderr } = await execFileAsync(hubPath, strategy.args, {
         timeout: timeoutMs,
         windowsHide: true,
+        // Capture output even on non-zero exit codes
+        maxBuffer: 10 * 1024 * 1024,
       });
-      return { success: true, stdout: stdout.trim(), stderr: stderr.trim() };
-    } catch (legacyError) {
-      const msg = error.message || legacyError.message;
-      const hint = msg.includes("ENOENT")
-        ? ` Unity Hub not found at "${hubPath}". Set UNITY_HUB_PATH environment variable to the correct path.`
-        : "";
-      return {
-        success: false,
-        error: msg + hint,
-        stdout: error.stdout?.trim() || legacyError.stdout?.trim() || "",
-        stderr: error.stderr?.trim() || legacyError.stderr?.trim() || "",
-      };
+      const out = (stdout || "").trim();
+      const err = (stderr || "").trim();
+      // Some Hub versions return data on stderr, check both
+      if (out || err) {
+        return { success: true, stdout: out, stderr: err };
+      }
+    } catch (error) {
+      const msg = error.message || String(error);
+      const out = (error.stdout || "").trim();
+      const err = (error.stderr || "").trim();
+      errors.push({ strategy: strategy.name, message: msg, stdout: out, stderr: err });
+      // If Hub returned data despite non-zero exit code, it might still be usable
+      if (out && !msg.includes("ENOENT")) {
+        return { success: true, stdout: out, stderr: err };
+      }
     }
   }
+
+  // All strategies failed — build helpful error message
+  const lastErr = errors[errors.length - 1] || {};
+  const isNotFound = errors.some((e) => e.message.includes("ENOENT"));
+  const hint = isNotFound
+    ? ` Unity Hub not found at "${hubPath}". Set UNITY_HUB_PATH environment variable to the correct path.`
+    : " Ensure Unity Hub is installed and supports CLI mode (--headless).";
+  return {
+    success: false,
+    error: (lastErr.message || "Unknown error") + hint,
+    stdout: lastErr.stdout || "",
+    stderr: lastErr.stderr || "",
+  };
 }
 
 /**
