@@ -74,6 +74,13 @@ This keeps the tool count manageable for clients like Claude Desktop and Cowork 
 
 The server automatically discovers all running Unity Editor instances on startup. If only one instance is found, it auto-connects. If multiple instances are running (e.g., main editor + ParrelSync clones), it prompts you to select which one to work with.
 
+**Port Resilience** — The server includes a multi-layer protection system for reliable multi-project workflows:
+
+- **Port Identity Validation** — When restoring a saved connection, the server verifies the instance identity (project name + path) matches the expected target. If Unity restarts and a different project grabs the port, the server detects this and re-discovers the correct instance.
+- **Compile-Time Resilience** — During long Unity compiles (when the editor is unresponsive), the server checks the shared instance registry. If the registry entry is fresh (updated within the last 5 minutes via heartbeat), the connection is preserved instead of dropped.
+- **Crash Detection** — The plugin sends a heartbeat every 30 seconds to the instance registry. If Unity crashes and the heartbeat stops, the server detects the stale registry entry (>5 minutes old) and clears it, allowing proper re-discovery.
+- **Port Affinity** — The plugin remembers its last-used port via EditorPrefs and reclaims it on restart, minimizing port swaps across editor restarts.
+
 ## Quick Start
 
 ### 1. Install the Unity Plugin
@@ -132,6 +139,11 @@ Restart Claude Desktop. Done!
 | `UNITY_BRIDGE_HOST` | `127.0.0.1` | Editor bridge host |
 | `UNITY_BRIDGE_PORT` | `7890` | Editor bridge port (auto-discovered when using multi-instance) |
 | `UNITY_BRIDGE_TIMEOUT` | `30000` | Request timeout in ms |
+| `UNITY_PORT_RANGE_START` | `7890` | Start of port scan range for multi-instance discovery |
+| `UNITY_PORT_RANGE_END` | `7899` | End of port scan range |
+| `UNITY_REGISTRY_STALENESS_TIMEOUT` | `300000` | Registry entry staleness timeout in ms (crash detection) |
+| `UNITY_RESPONSE_SOFT_LIMIT` | `2097152` | Response size soft limit in bytes (warning) |
+| `UNITY_RESPONSE_HARD_LIMIT` | `4194304` | Response size hard limit in bytes (truncation) |
 | `UNITY_MCP_DEBUG` | `false` | Enable debug logging for troubleshooting |
 
 The Unity plugin also has its own settings accessible via the Dashboard (`Window > MCP Dashboard`) for port, auto-start, and per-category feature toggles.
@@ -194,6 +206,7 @@ AnkleBreaker Unity MCP is the most comprehensive MCP integration for Unity, purp
 | **MPPM Multiplayer** | ✅ Scenarios, start/stop | ❌ | ❌ | ❌ |
 | **Visual Inspection** | ✅ Scene + Game view capture | ❌ | ⚠️ Limited | ❌ |
 | **Play Mode Resilient** | ✅ Survives domain reload | ❌ | ❌ | N/A |
+| **Port Resilience** | ✅ Identity validation + crash detection | ❌ | ❌ | N/A |
 | **Project Context** | ✅ Custom docs for AI agents | ❌ | ❌ | ⚠️ Built-in only |
 
 ### Cost Comparison
@@ -235,13 +248,12 @@ If Unity MCP helps your workflow, consider supporting its development! Your supp
 
 **Sponsor tiers include priority feature requests** — your ideas get bumped up the roadmap! Check out the tiers on [GitHub Sponsors](https://github.com/sponsors/AnkleBreaker-Studio) or [Patreon](https://www.patreon.com/AnkleBreakerStudio).
 
-## What's New in v2.21.0
+## What's New in v2.22.2
 
-- **Graphics capture data path fix** — Fixed `unity_graphics_scene_capture` and `unity_graphics_game_capture` returning false "no image data" errors by correctly unwrapping the bridge response structure (`result.data.base64`)
-- **MPPM route overrides** — Fixed Multiplayer Play Mode tools (`unity_mppm_*`) failing via the advanced tool proxy by adding explicit route mappings for `scenario/*` endpoints
-- **Hub CLI resilience** — Rewrote Unity Hub CLI wrapper with strategy-based fallback (modern → legacy syntax), better error recovery from non-zero exit codes, and 10MB output buffer
-- **Property type coercion** — `unity_component_set_property` now auto-converts string values like `"5.0"` to proper numeric types, preventing C# parsing failures across different locales
-- **Response size protection** — Global truncation safety net prevents oversized responses (large hierarchies, asset lists) from causing Write EOF errors on the stdio transport
+- **Multi-project port identity** — The server now validates that a persisted instance selection actually matches the expected project (by name and path) before reconnecting. If a different Unity project grabbed the same port after a restart, the server detects the mismatch and re-discovers the correct instance automatically.
+- **Compile-time resilience** — When a Unity Editor is unresponsive (e.g., during a long compile), the server checks the shared instance registry before dropping the connection. Fresh registry entries (updated by the plugin's 30-second heartbeat) indicate the editor is still alive, preventing unnecessary disconnects during compiles.
+- **Crash detection** — If Unity crashes and the plugin's `OnDisable` never fires, the registry entry goes stale (no heartbeat updates). The server detects entries older than 5 minutes as crashed instances and clears them, allowing proper re-discovery. The staleness timeout is configurable via `UNITY_REGISTRY_STALENESS_TIMEOUT`.
+- **Enhanced instance discovery** — Both registry fallback paths in `validateSelectedInstance()` now check entry staleness, giving three-scenario coverage: normal shutdown (clean unregister), long compile (fresh entry = keep connection), and crash (stale entry = re-discover).
 
 ## License
 
