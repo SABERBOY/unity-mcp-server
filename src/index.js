@@ -40,7 +40,7 @@ import {
   isInstanceSelectionRequired,
   validateSelectedInstance,
 } from "./instance-discovery.js";
-import { persistState, loadState, debugLog } from "./state-persistence.js";
+import { debugLog } from "./state-persistence.js";
 import { CONFIG } from "./config.js";
 
 // ─── Response size protection ───
@@ -129,15 +129,8 @@ let _contextCache = null;
 // State is persisted to disk because the MCP host may restart this process between tool calls.
 let _instanceDiscoveryDone = false;
 
-// Restore persisted discovery state on module load
-(function restoreDiscoveryState() {
-  const persistedDone = loadState("instanceDiscoveryDone");
-  const hasSelectedInstance = getSelectedInstance();
-  if (persistedDone && hasSelectedInstance) {
-    _instanceDiscoveryDone = true;
-    debugLog(`Restored _instanceDiscoveryDone=true (selected port=${hasSelectedInstance.port})`);
-  }
-})();
+// No persisted state to restore — instance discovery runs fresh each process.
+// Each agent/task gets its own MCP stdio process, so in-memory state is per-agent.
 
 async function getContextSummaryOnce() {
   if (_contextInjected) return null;
@@ -198,13 +191,11 @@ async function ensureInstanceDiscovery() {
       // Re-run discovery on next call.
       debugLog(`Persisted selection invalidated — project no longer found. Will re-discover.`);
       _instanceDiscoveryDone = false;
-      persistState("instanceDiscoveryDone", false);
     }
     return null;
   }
 
   _instanceDiscoveryDone = true;
-  persistState("instanceDiscoveryDone", true);
 
   try {
     const result = await autoSelectInstance();
@@ -279,7 +270,7 @@ async function ensureInstanceDiscovery() {
 const server = new Server(
   {
     name: "unity-mcp",
-    version: "2.23.0",
+    version: "2.23.1",
   },
   {
     capabilities: {
@@ -457,7 +448,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  debugLog(`=== SERVER START === v2.22.0, agent=${PROCESS_AGENT_ID}, discoveryDone=${_instanceDiscoveryDone}, selectedPort=${getSelectedInstance()?.port || 'null'}`);
+  debugLog(`=== SERVER START === v2.23.1, agent=${PROCESS_AGENT_ID}, discoveryDone=${_instanceDiscoveryDone}, selectedPort=${getSelectedInstance()?.port || 'null'}`);
   console.error(
     `Unity MCP Server running on stdio (agent: ${PROCESS_AGENT_ID})`
   );

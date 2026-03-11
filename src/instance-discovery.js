@@ -7,58 +7,31 @@
 
 import { readFileSync } from "fs";
 import { CONFIG } from "./config.js";
-import { persistState, loadState, debugLog } from "./state-persistence.js";
+import { debugLog } from "./state-persistence.js";
 
 // ─── Session State ───
 // Tracks which Unity instance this MCP session is targeting.
-// State is also persisted to disk so it survives process restarts.
+// State is purely in-memory per-process — each agent/task gets its own MCP stdio
+// process, so in-memory state is inherently per-agent. We do NOT persist instance
+// selection to disk because multiple agents may target different Unity projects
+// simultaneously. The shared state file caused cross-agent contamination where
+// Agent A's selection would be restored by Agent B on process restart.
+// Auto-discovery handles re-selection: single instance → auto-select, multiple → prompt user.
 let _selectedInstance = null; // { port, projectName, projectPath, ... }
 let _instanceSelectionRequired = false;
 
-// On module load, restore persisted state (the process may have been restarted)
-(function restorePersistedState() {
-  try {
-    const persisted = loadState("selectedInstance");
-    if (persisted && persisted.port) {
-      // Store as tentative — will be validated on first use via validateSelectedInstance()
-      _selectedInstance = persisted;
-      _needsIdentityValidation = true;
-      _instanceSelectionRequired = false;
-      debugLog(`Restored persisted instance (pending validation): ${persisted.projectName} (port ${persisted.port})`);
-    }
-  } catch {
-    // Ignore — fresh start
-  }
-})();
-
-// Flag: when true, the restored selection needs identity validation before use
-let _needsIdentityValidation = false;
-
 /**
  * Get the currently selected Unity instance for this session.
- * Falls through to persisted state if in-memory state was lost (process restart).
+ * Returns in-memory state only — no disk persistence.
  * @returns {object|null} Selected instance info, or null if none selected.
  */
 export function getSelectedInstance() {
-  if (_selectedInstance) return _selectedInstance;
-
-  // Check persisted state (survives process restarts)
-  const persisted = loadState("selectedInstance");
-  if (persisted && persisted.port) {
-    _selectedInstance = persisted;
-    _needsIdentityValidation = true;
-    _instanceSelectionRequired = false;
-    debugLog(`getSelectedInstance: restored from persistence — port ${persisted.port}`);
-    return _selectedInstance;
-  }
-
-  return null;
+  return _selectedInstance;
 }
 
 /**
- * Validate that the currently selected instance still hosts the expected project.
- * Detects port swapping: if ProjectA was on port 7891 but now ProjectB is there,
- * re-discovers instances and re-selects by matching projectPath.
+ * Validate that the currently selected instance is still alive and hosts the expected project.
+ * Called on first tool execution to catch cases where Unity was closed or port changed.
  *
  * Compile-time resilience:
  *   During long Unity compilations the main thread is blocked, so the HTTP bridge
@@ -68,28 +41,22 @@ export function getSelectedInstance() {
  *   Unity is likely just compiling. We only clear the selection when we have positive
  *   evidence the project is gone (not in registry AND not responding).
  *
- * This MUST be called before the first tool execution after a process restart.
  * @returns {object|null} Validated instance, or null if validation cleared the selection.
  */
 export async function validateSelectedInstance() {
-  if (!_needsIdentityValidation || !_selectedInstance) {
-    _needsIdentityValidation = false;
-    return _selectedInstance;
+  if (!_selectedInstance) {
+    return null;
   }
 
-  _needsIdentityValidation = false;
   const saved = _selectedInstance;
   const savedPath = saved.projectPath;
   const savedPort = saved.port;
-
-  debugLog(`Validating persisted selection: ${saved.projectName} expected on port ${savedPort}`);
 
   // Ping the saved port and check what project is actually there
   const alive = await pingInstance(savedPort);
   if (alive) {
     const info = await getInstanceInfo(savedPort);
     if (info && info.projectPath && info.projectPath === savedPath) {
-      debugLog(`Validation OK: port ${savedPort} still hosts ${saved.projectName}`);
       return _selectedInstance;
     }
 
@@ -113,22 +80,14 @@ export async function validateSelectedInstance() {
     );
 
     if (registryMatch) {
-      // Registry still claims our project is on this port.
-      // But check for staleness — if Unity crashed, OnDisable never fires and
-      // the entry persists forever. The plugin sends a heartbeat every 30s,
-      // so if lastSeen is older than the staleness timeout, Unity likely crashed.
       if (isRegistryEntryStale(registryMatch)) {
         debugLog(
           `Port ${savedPort} unresponsive and registry entry is STALE (lastSeen: ${registryMatch.lastSeen}). Unity likely crashed. Proceeding to re-discovery.`
         );
-        console.error(
-          `[MCP Discovery] Registry entry for "${saved.projectName}" on port ${savedPort} is stale — Unity may have crashed. Re-discovering...`
-        );
       } else {
-        // Entry is fresh — Unity is very likely just compiling (main thread blocked → HTTP bridge unresponsive).
-        // Keep the selection — the bridge will respond once compilation finishes.
+        // Entry is fresh — Unity is very likely just compiling
         debugLog(
-          `Port ${savedPort} unresponsive but registry entry is fresh (lastSeen: ${registryMatch.lastSeen}) — likely compiling. Keeping selection.`
+          `Port ${savedPort} unresponsive but registry entry is fresh — likely compiling. Keeping selection.`
         );
         return _selectedInstance;
       }
@@ -147,8 +106,6 @@ export async function validateSelectedInstance() {
     debugLog(`Re-selected ${saved.projectName} on new port ${match.port} (was ${savedPort})`);
     _selectedInstance = match;
     _instanceSelectionRequired = false;
-    persistState("selectedInstance", match);
-    persistState("instanceSelectionRequired", false);
     return _selectedInstance;
   }
 
@@ -157,26 +114,23 @@ export async function validateSelectedInstance() {
     (entry) => entry.projectPath && entry.projectPath === savedPath
   );
   if (registryFallback && registryFallback.port) {
-    // But check for staleness — a crashed Unity leaves a stale entry forever
     if (isRegistryEntryStale(registryFallback)) {
       debugLog(
-        `Project "${saved.projectName}" found in registry on port ${registryFallback.port} but entry is STALE (lastSeen: ${registryFallback.lastSeen}). Unity likely crashed. Clearing selection.`
+        `Project "${saved.projectName}" found in registry but entry is STALE. Clearing selection.`
       );
     } else {
       debugLog(
-        `Project "${saved.projectName}" not responding but found in registry on port ${registryFallback.port} (fresh entry) — likely compiling. Keeping selection with updated port.`
+        `Project "${saved.projectName}" found in registry on port ${registryFallback.port} (fresh) — likely compiling. Keeping selection.`
       );
       _selectedInstance = { ...saved, port: registryFallback.port };
-      persistState("selectedInstance", _selectedInstance);
       return _selectedInstance;
     }
   }
 
   // Project truly gone — not responding AND not in registry
-  debugLog(`Project "${saved.projectName}" no longer found (not in registry, not responding). Clearing selection.`);
+  debugLog(`Project "${saved.projectName}" no longer found. Clearing selection.`);
   _selectedInstance = null;
   _instanceSelectionRequired = false;
-  persistState("selectedInstance", null);
   return null;
 }
 
@@ -222,11 +176,7 @@ export async function selectInstance(port) {
 
   _selectedInstance = match;
   _instanceSelectionRequired = false;
-
-  // Persist to disk so the selection survives process restarts
-  persistState("selectedInstance", match);
-  persistState("instanceSelectionRequired", false);
-  debugLog(`selectInstance: saved port ${port} (${match.projectName})`);
+  debugLog(`selectInstance: selected port ${port} (${match.projectName})`);
 
   return {
     success: true,
@@ -351,8 +301,6 @@ export async function autoSelectInstance() {
         source: "default",
       };
       _instanceSelectionRequired = false;
-      persistState("selectedInstance", _selectedInstance);
-      persistState("instanceSelectionRequired", false);
       debugLog(`autoSelect: single default instance on port ${CONFIG.editorBridgePort}`);
       return {
         autoSelected: true,
@@ -374,8 +322,6 @@ export async function autoSelectInstance() {
     // Exactly one instance — auto-select it
     _selectedInstance = instances[0];
     _instanceSelectionRequired = false;
-    persistState("selectedInstance", _selectedInstance);
-    persistState("instanceSelectionRequired", false);
     debugLog(`autoSelect: single instance on port ${_selectedInstance.port}`);
     return {
       autoSelected: true,
@@ -388,7 +334,6 @@ export async function autoSelectInstance() {
   // Multiple instances — require user selection (but only if none already selected manually)
   if (!_selectedInstance) {
     _instanceSelectionRequired = true;
-    persistState("instanceSelectionRequired", true);
     debugLog(`autoSelect: ${instances.length} instances found, selection required`);
   }
   return {
