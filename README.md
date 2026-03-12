@@ -248,12 +248,12 @@ If Unity MCP helps your workflow, consider supporting its development! Your supp
 
 **Sponsor tiers include priority feature requests** — your ideas get bumped up the roadmap! Check out the tiers on [GitHub Sponsors](https://github.com/sponsors/AnkleBreaker-Studio) or [Patreon](https://www.patreon.com/AnkleBreakerStudio).
 
-## What's New in v2.22.2
+## What's New in v2.25.0
 
-- **Multi-project port identity** — The server now validates that a persisted instance selection actually matches the expected project (by name and path) before reconnecting. If a different Unity project grabbed the same port after a restart, the server detects the mismatch and re-discovers the correct instance automatically.
-- **Compile-time resilience** — When a Unity Editor is unresponsive (e.g., during a long compile), the server checks the shared instance registry before dropping the connection. Fresh registry entries (updated by the plugin's 30-second heartbeat) indicate the editor is still alive, preventing unnecessary disconnects during compiles.
-- **Crash detection** — If Unity crashes and the plugin's `OnDisable` never fires, the registry entry goes stale (no heartbeat updates). The server detects entries older than 5 minutes as crashed instances and clears them, allowing proper re-discovery. The staleness timeout is configurable via `UNITY_REGISTRY_STALENESS_TIMEOUT`.
-- **Enhanced instance discovery** — Both registry fallback paths in `validateSelectedInstance()` now check entry staleness, giving three-scenario coverage: normal shutdown (clean unregister), long compile (fresh entry = keep connection), and crash (stale entry = re-discover).
+- **Parallel-safe instance routing** — When multiple AI agents (e.g. Claude Cowork tasks) share the same MCP process, each agent can now include a `port` parameter in every `unity_*` tool call to guarantee routing to the correct Unity Editor instance. This prevents cross-agent contamination where one task's `unity_select_instance` could redirect another task's commands to the wrong project.
+- **Per-request port override** — A new stateless routing mechanism bypasses the shared per-agent state entirely. The `port` parameter is extracted by middleware before the tool handler runs, used for routing, then stripped from the args. This is safe because MCP stdio transport processes requests sequentially.
+- **Schema injection** — The optional `port` parameter is automatically injected into every `unity_*` tool schema (except `unity_list_instances`, `unity_select_instance`, and `unity_hub_*`), so AI assistants see it as a legitimate parameter and pass it consistently.
+- **Enhanced select_instance response** — `unity_select_instance` now returns explicit routing instructions telling the AI to include `port` in all subsequent calls.
 
 ## License
 

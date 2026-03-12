@@ -66,7 +66,10 @@ export const instanceTools = [
       "Select which Unity Editor instance to work with for this session. " +
       "All subsequent unity_* commands will be routed to the selected instance. " +
       "You must provide the port number of the instance (get it from unity_list_instances). " +
-      "IMPORTANT: Call unity_list_instances first to see available instances and their ports.",
+      "IMPORTANT: Call unity_list_instances first to see available instances and their ports. " +
+      "PARALLEL SAFETY: After selecting, include 'port: <number>' as a parameter in ALL " +
+      "subsequent unity_* tool calls to guarantee routing to this instance even when " +
+      "multiple agents share the same MCP process.",
     inputSchema: {
       type: "object",
       properties: {
@@ -92,6 +95,19 @@ export const instanceTools = [
       }
 
       const result = await selectInstance(port);
+
+      // Enhance successful responses with parallel-safe routing instructions
+      if (result.success) {
+        result.routing = {
+          port: port,
+          instruction:
+            `IMPORTANT — PARALLEL SAFETY: To guarantee your commands reach "${result.instance?.projectName || "this instance"}" ` +
+            `(port ${port}), you MUST include  port: ${port}  as a parameter in ALL subsequent unity_* tool calls. ` +
+            `This prevents cross-agent routing issues when multiple tasks run in parallel. ` +
+            `Example: unity_execute_code({ code: "...", port: ${port} })`,
+        };
+      }
+
       return JSON.stringify(result, null, 2);
     },
   },

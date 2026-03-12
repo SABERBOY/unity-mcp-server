@@ -24,6 +24,36 @@ const _agentInstances = new Map();          // agentId → { port, projectName, 
 const _agentSelectionRequired = new Map();  // agentId → boolean
 let _currentAgentId = "default";
 
+// ─── Per-Request Port Override ───
+// When multiple agents share a single MCP process (e.g. parallel Cowork tasks),
+// the per-agent state above can get overwritten between sequential requests.
+// The port override provides a stateless routing mechanism: each tool call can
+// include a `port` parameter, and ALL HTTP requests during that handler execution
+// will be routed to that port — bypassing the shared agent state entirely.
+// This is safe because stdio transport is sequential (one request at a time).
+let _portOverride = null;
+
+/**
+ * Set a per-request port override. All bridge URL lookups will use this port
+ * until clearPortOverride() is called. Must be called before the tool handler
+ * and cleared in a finally block after it completes.
+ * @param {number} port - The port to route to for this request.
+ */
+export function setPortOverride(port) {
+  _portOverride = port;
+  debugLog(`setPortOverride: routing to port ${port} for this request`);
+}
+
+/**
+ * Clear the per-request port override. Must be called after tool handler completes.
+ */
+export function clearPortOverride() {
+  if (_portOverride !== null) {
+    debugLog(`clearPortOverride: cleared (was ${_portOverride})`);
+    _portOverride = null;
+  }
+}
+
 /**
  * Set the current agent context for subsequent state operations.
  * Must be called before any tool handler execution.
@@ -201,11 +231,15 @@ export async function selectInstance(port) {
 
 /**
  * Get the bridge URL for the currently selected instance.
- * Falls back to default CONFIG port if no instance is selected.
+ * Priority: per-request port override > per-agent selection > default CONFIG port.
  * @returns {string} The base URL for HTTP bridge commands.
  */
 export function getActiveBridgeUrl() {
   const host = CONFIG.editorBridgeHost;
+  // Per-request override takes highest priority (stateless routing for parallel agents)
+  if (_portOverride !== null) {
+    return `http://${host}:${_portOverride}`;
+  }
   const selected = _agentInstances.get(_currentAgentId);
   if (selected) {
     return `http://${host}:${selected.port}`;
@@ -215,8 +249,12 @@ export function getActiveBridgeUrl() {
 
 /**
  * Get the port of the currently selected instance, or the default.
+ * Priority: per-request port override > per-agent selection > default CONFIG port.
  */
 export function getActivePort() {
+  if (_portOverride !== null) {
+    return _portOverride;
+  }
   const selected = _agentInstances.get(_currentAgentId);
   if (selected) {
     return selected.port;

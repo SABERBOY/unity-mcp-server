@@ -40,6 +40,8 @@ import {
   isInstanceSelectionRequired,
   validateSelectedInstance,
   setCurrentAgent,
+  setPortOverride,
+  clearPortOverride,
 } from "./instance-discovery.js";
 import { debugLog } from "./state-persistence.js";
 import { CONFIG } from "./config.js";
@@ -270,7 +272,7 @@ async function ensureInstanceDiscovery() {
 const server = new Server(
   {
     name: "unity-mcp",
-    version: "2.24.0",
+    version: "2.25.0",
   },
   {
     capabilities: {
@@ -293,13 +295,42 @@ const server = new Server(
 );
 
 // ─── List Tools Handler ───
+// Inject an optional `port` parameter into every unity_* tool schema (except
+// unity_select_instance which already owns it, unity_list_instances which lists
+// all instances, and unity_hub_* which talk to Unity Hub not an Editor instance).
+// This lets agents pass `port` on every call for parallel-safe routing without
+// having to modify each tool definition file individually.
+const TOOLS_SKIP_PORT_INJECT = new Set([
+  "unity_select_instance",
+  "unity_list_instances",
+]);
+
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
-    tools: ALL_TOOLS.map(({ name, description, inputSchema }) => ({
-      name,
-      description,
-      inputSchema,
-    })),
+    tools: ALL_TOOLS.map(({ name, description, inputSchema }) => {
+      // Inject port into unity_* tools that target an Editor instance
+      if (
+        name.startsWith("unity_") &&
+        !name.startsWith("unity_hub_") &&
+        !TOOLS_SKIP_PORT_INJECT.has(name)
+      ) {
+        const augmented = {
+          ...inputSchema,
+          properties: {
+            ...(inputSchema.properties || {}),
+            port: {
+              type: "number",
+              description:
+                "Target Unity instance port for parallel-safe routing. " +
+                "Get this from unity_select_instance. When working with " +
+                "multiple Unity instances, ALWAYS include this parameter.",
+            },
+          },
+        };
+        return { name, description, inputSchema: augmented };
+      }
+      return { name, description, inputSchema };
+    }),
   };
 });
 
@@ -328,16 +359,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       setCurrentAgent(PROCESS_AGENT_ID);
     }
 
+    // ─── Per-request port override (parallel-agent safe routing) ───
+    // When multiple agents share this MCP process, the per-agent state can get
+    // overwritten between sequential requests. If the caller provides a `port`
+    // parameter (or _meta.port), we bypass the shared state entirely and route
+    // directly to that port for the duration of this request.
+    const portOverride = (args && typeof args.port === "number" && args.port)
+      || (meta && typeof meta.port === "number" && meta.port)
+      || null;
+
+    if (portOverride) {
+      setPortOverride(portOverride);
+      debugLog(`Port override active: ${portOverride} for tool ${name}`);
+    }
+
+    try {
     // Auto-discover instances on first tool call (unless it's an instance tool itself)
+    // Skip auto-discovery when port override is active — the caller already knows where to route.
     let instancePrompt = null;
-    if (name !== "unity_list_instances" && name !== "unity_select_instance") {
+    if (!portOverride && name !== "unity_list_instances" && name !== "unity_select_instance") {
       instancePrompt = await ensureInstanceDiscovery();
     }
 
     // If instance selection is required and this isn't an instance/hub tool, warn
-    const _selReq = isInstanceSelectionRequired();
+    // Skip this check when port override is active — the caller is explicitly routing.
+    const _selReq = !portOverride && isInstanceSelectionRequired();
     const _selInst = getSelectedInstance();
-    debugLog(`Tool=${name}, selectionRequired=${_selReq}, selectedPort=${_selInst?.port || 'null'}, instancePrompt=${instancePrompt ? 'SET' : 'null'}, discoveryDone=${_discoveryDonePerAgent.get(PROCESS_AGENT_ID) || false}`);
+    debugLog(`Tool=${name}, portOverride=${portOverride || 'null'}, selectionRequired=${_selReq}, selectedPort=${_selInst?.port || 'null'}, instancePrompt=${instancePrompt ? 'SET' : 'null'}, discoveryDone=${_discoveryDonePerAgent.get(PROCESS_AGENT_ID) || false}`);
     if (
       _selReq &&
       !name.startsWith("unity_hub_") &&
@@ -359,7 +407,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-    const result = await tool.handler(args || {});
+    // Strip the `port` parameter before passing to the tool handler
+    // so tool implementations don't see unexpected params.
+    // Exception: unity_select_instance uses `port` as its own legitimate parameter.
+    const handlerArgs = args ? { ...args } : {};
+    if (handlerArgs.port !== undefined && name !== "unity_select_instance") {
+      delete handlerArgs.port;
+    }
+
+    const result = await tool.handler(handlerArgs);
 
     // Build response content blocks
     const contentBlocks = [];
@@ -383,7 +439,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     return { content: truncateResponseIfNeeded(contentBlocks) };
+
+    } finally {
+      // Always clear port override after request completes, even on error
+      clearPortOverride();
+    }
   } catch (error) {
+    // Safety: ensure port override is always cleared, even on unexpected errors
+    clearPortOverride();
     return {
       content: [
         {
@@ -453,7 +516,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  debugLog(`=== SERVER START === v2.24.0, agent=${PROCESS_AGENT_ID}, discoveryDone=${_discoveryDonePerAgent.get(PROCESS_AGENT_ID) || false}, selectedPort=${getSelectedInstance()?.port || 'null'}`);
+  debugLog(`=== SERVER START === v2.25.0, agent=${PROCESS_AGENT_ID}, discoveryDone=${_discoveryDonePerAgent.get(PROCESS_AGENT_ID) || false}, selectedPort=${getSelectedInstance()?.port || 'null'}`);
   console.error(
     `Unity MCP Server running on stdio (agent: ${PROCESS_AGENT_ID})`
   );
