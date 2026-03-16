@@ -49,6 +49,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that gi
 | **Multi-Instance** | Discover and switch between multiple running Unity Editor instances |
 | **Multi-Agent** | List active agents, get agent action logs, queue monitoring |
 | **Project Context** | Auto-inject project-specific docs and guidelines for AI agents |
+| **UMA (Avatar)** | Inspect FBX for UMA, create Slots/Overlays/Wardrobe Recipes, atomic FBX-to-wardrobe pipeline, equip/unequip on DCA, list Global Library & wardrobe slots & materials, verify recipes, rebuild library (`UMA` package) |
 
 ## Architecture
 
@@ -160,6 +161,7 @@ Some tools activate automatically when their packages are detected in the Unity 
 | `com.unity.inputsystem` | Input Action map and binding inspection |
 | `com.unity.multiplayer.playmode` | MPPM scenario listing, activation, start/stop, player info |
 | Amplify Shader Editor (Asset Store) | Amplify shader listing, inspection, opening |
+| UMA 2 (Unity Multipurpose Avatar) | FBX inspection, Slot/Overlay/Wardrobe creation, Global Library management, equip/unequip on DCA |
 
 Features for uninstalled packages return helpful messages explaining what to install.
 
@@ -248,12 +250,16 @@ If Unity MCP helps your workflow, consider supporting its development! Your supp
 
 **Sponsor tiers include priority feature requests** — your ideas get bumped up the roadmap! Check out the tiers on [GitHub Sponsors](https://github.com/sponsors/AnkleBreaker-Studio) or [Patreon](https://www.patreon.com/AnkleBreakerStudio).
 
-## What's New in v2.25.0
+## What's New in v2.26.0
 
-- **Parallel-safe instance routing** — When multiple AI agents (e.g. Claude Cowork tasks) share the same MCP process, each agent can now include a `port` parameter in every `unity_*` tool call to guarantee routing to the correct Unity Editor instance. This prevents cross-agent contamination where one task's `unity_select_instance` could redirect another task's commands to the wrong project.
-- **Per-request port override** — A new stateless routing mechanism bypasses the shared per-agent state entirely. The `port` parameter is extracted by middleware before the tool handler runs, used for routing, then stripped from the args. This is safe because MCP stdio transport processes requests sequentially.
-- **Schema injection** — The optional `port` parameter is automatically injected into every `unity_*` tool schema (except `unity_list_instances`, `unity_select_instance`, and `unity_hub_*`), so AI assistants see it as a legitimate parameter and pass it consistently.
-- **Enhanced select_instance response** — `unity_select_instance` now returns explicit routing instructions telling the AI to include `port` in all subsequent calls.
+- **UMA (Unity Multipurpose Avatar) integration** — 13 new tools for the complete UMA asset pipeline: inspect FBX meshes for UMA compatibility, create SlotDataAssets, OverlayDataAssets, and WardrobeRecipes, run the atomic FBX-to-wardrobe pipeline, equip/unequip items on DynamicCharacterAvatars, browse the Global Library, list wardrobe slots and UMA materials, verify recipes, rebuild the Global Library, and register assets. All tools are conditional on the UMA package being installed.
+- **New `uma-bridge.js` module** — UMA bridge functions extracted into a dedicated module for clean separation from core editor tools.
+
+### Previous: v2.25.0
+
+- **Parallel-safe instance routing** — Per-request `port` parameter on every `unity_*` tool call for multi-agent safety.
+- **Schema injection** — Optional `port` parameter auto-injected into tool schemas.
+- **Enhanced select_instance response** — Explicit routing instructions for AI assistants.
 
 ## License
 

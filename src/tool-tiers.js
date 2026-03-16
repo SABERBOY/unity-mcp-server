@@ -193,7 +193,7 @@ export function splitToolTiers(allEditorTools) {
     description:
       "List all available advanced/specialized Unity tools organized by category. " +
       "These tools are not directly exposed but can be called via unity_advanced_tool. " +
-      "Categories include: animation, prefab, physics, lighting, audio, shadergraph, " +
+      "Categories include: uma, animation, prefab, physics, lighting, audio, shadergraph, " +
       "amplify, terrain, particle, navmesh, ui, texture, profiler, memory, settings, " +
       "input, asmdef, scriptableobject, constraint, lod, editorprefs, playerprefs, " +
       "vfx, graphics, sceneview, and more.",
