@@ -1,8 +1,8 @@
-// AnkleBreaker Unity MCP — Tool definitions for Unity Editor operations (via HTTP bridge)
+﻿// AnkleBreaker Unity MCP â€” Tool definitions for Unity Editor operations (via HTTP bridge)
 import * as bridge from "../unity-editor-bridge.js";
 
 export const editorTools = [
-  // ─── Connection ───
+  // â”€â”€â”€ Connection â”€â”€â”€
   {
     name: "unity_editor_ping",
     description: "Check if the Unity Editor bridge is running and responsive. Returns editor version, project name, and connection status.",
@@ -16,7 +16,7 @@ export const editorTools = [
     handler: async () => JSON.stringify(await bridge.getEditorState(), null, 2),
   },
 
-  // ─── Scene Management ───
+  // â”€â”€â”€ Scene Management â”€â”€â”€
   {
     name: "unity_scene_info",
     description: "Get information about the currently open scene(s), including name, path, dirty state, and root game objects.",
@@ -61,7 +61,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getHierarchy(params), null, 2),
   },
 
-  // ─── GameObject Operations ───
+  // â”€â”€â”€ GameObject Operations â”€â”€â”€
   {
     name: "unity_gameobject_create",
     description: "Create a new GameObject in the scene. Can specify primitive type (Cube, Sphere, Capsule, Cylinder, Plane, Quad), parent, and initial transform.",
@@ -133,7 +133,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setTransform(params), null, 2),
   },
 
-  // ─── Component Operations ───
+  // â”€â”€â”€ Component Operations â”€â”€â”€
   {
     name: "unity_component_add",
     description: "Add a component to a GameObject. Supports built-in types (Rigidbody, BoxCollider, AudioSource, Light, Camera, etc.) and custom scripts.",
@@ -209,13 +209,13 @@ export const editorTools = [
   },
   {
     name: "unity_component_set_reference",
-    description: "Set an object reference on a component property. Dedicated tool for wiring references between GameObjects, components, and assets. More powerful than set_property for ObjectReference fields — supports resolution by asset path, scene GameObject name, component type, or instance ID.",
+    description: "Set an object reference on a component property. Dedicated tool for wiring references between GameObjects, components, and assets. More powerful than set_property for ObjectReference fields â€” supports resolution by asset path, scene GameObject name, component type, or instance ID.",
     inputSchema: {
       type: "object",
       properties: {
         path: { type: "string", description: "Hierarchy path or name of the target GameObject" },
         instanceId: { type: "number", description: "Instance ID of the target GameObject (alternative to path)" },
-        componentType: { type: "string", description: "Component type containing the property (optional — will auto-search all components)" },
+        componentType: { type: "string", description: "Component type containing the property (optional â€” will auto-search all components)" },
         propertyName: { type: "string", description: "Name of the ObjectReference property to set" },
         assetPath: { type: "string", description: "Asset path to assign (e.g. 'Assets/Materials/MyMat.mat', 'Assets/Prefabs/Enemy.prefab')" },
         referenceGameObject: { type: "string", description: "Name or hierarchy path of a scene GameObject to assign" },
@@ -274,7 +274,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getReferenceableObjects(params), null, 2),
   },
 
-  // ─── Asset Management ───
+  // â”€â”€â”€ Asset Management â”€â”€â”€
   {
     name: "unity_asset_list",
     description: "List assets in the project. Can filter by path, type, and search term.",
@@ -345,7 +345,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.instantiatePrefab(params), null, 2),
   },
 
-  // ─── Script / Code Operations ───
+  // â”€â”€â”€ Script / Code Operations â”€â”€â”€
   {
     name: "unity_script_create",
     description: "Create a new C# script file in the project with the given content.",
@@ -398,7 +398,7 @@ export const editorTools = [
     handler: async ({ code }) => JSON.stringify(await bridge.executeCode(code), null, 2),
   },
 
-  // ─── Material / Rendering ───
+  // â”€â”€â”€ Material / Rendering â”€â”€â”€
   {
     name: "unity_material_create",
     description: "Create a new material asset with a specified shader and properties.",
@@ -429,7 +429,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setMaterial(params), null, 2),
   },
 
-  // ─── Build ───
+  // â”€â”€â”€ Build â”€â”€â”€
   {
     name: "unity_build",
     description: "Start a build of the Unity project for a target platform.",
@@ -454,7 +454,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.buildProject(params), null, 2),
   },
 
-  // ─── Console / Logging ───
+  // â”€â”€â”€ Console / Logging â”€â”€â”€
   {
     name: "unity_console_log",
     description: "Get recent Unity console log messages (errors, warnings, info). Useful for debugging.",
@@ -474,6 +474,7 @@ export const editorTools = [
     handler: async () => JSON.stringify(await bridge.clearConsoleLog(), null, 2),
   },
 
+  // â”€â”€â”€ Play Mode â”€â”€â”€
   // ─── Compilation ───
   {
     name: "unity_get_compilation_errors",
@@ -507,7 +508,7 @@ export const editorTools = [
     handler: async ({ action }) => JSON.stringify(await bridge.playMode(action), null, 2),
   },
 
-  // ─── Editor Menu ───
+  // â”€â”€â”€ Editor Menu â”€â”€â”€
   {
     name: "unity_execute_menu_item",
     description: "Execute a Unity Editor menu command by its path (e.g. 'File/Save', 'GameObject/3D Object/Cube', 'Window/General/Console').",
@@ -521,7 +522,7 @@ export const editorTools = [
     handler: async ({ menuPath }) => JSON.stringify(await bridge.executeMenuItem(menuPath), null, 2),
   },
 
-  // ─── Project Info ───
+  // â”€â”€â”€ Project Info â”€â”€â”€
   {
     name: "unity_project_info",
     description: "Get project information: name, path, Unity version, render pipeline, packages, build settings.",
@@ -529,7 +530,7 @@ export const editorTools = [
     handler: async () => JSON.stringify(await bridge.getProjectInfo(), null, 2),
   },
 
-  // ─── Animation ───
+  // â”€â”€â”€ Animation â”€â”€â”€
   {
     name: "unity_animation_create_controller",
     description: "Create a new Animator Controller asset at the specified path.",
@@ -933,7 +934,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getBlendTreeInfo(params), null, 2),
   },
 
-  // ─── Prefab (Advanced) ───
+  // â”€â”€â”€ Prefab (Advanced) â”€â”€â”€
   {
     name: "unity_prefab_info",
     description: "Get detailed prefab information: overrides, variant status, added/removed components. Works on both prefab assets and scene instances.",
@@ -999,7 +1000,7 @@ export const editorTools = [
   },
   {
     name: "unity_set_object_reference",
-    description: "[LEGACY — prefer unity_component_set_reference] Set an object reference property on a component via the prefab system. Use unity_component_set_reference instead for richer resolution options.",
+    description: "[LEGACY â€” prefer unity_component_set_reference] Set an object reference property on a component via the prefab system. Use unity_component_set_reference instead for richer resolution options.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1056,10 +1057,10 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.reparentGameObject(params), null, 2),
   },
 
-  // ─── Prefab Asset (Direct Editing) ───
+  // â”€â”€â”€ Prefab Asset (Direct Editing) â”€â”€â”€
   {
     name: "unity_prefab_get_hierarchy",
-    description: "Get the full hierarchy tree of a prefab asset directly from disk — no scene instance needed. Shows all GameObjects, components, and nested children inside the prefab.",
+    description: "Get the full hierarchy tree of a prefab asset directly from disk â€” no scene instance needed. Shows all GameObjects, components, and nested children inside the prefab.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1072,7 +1073,7 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_get_properties",
-    description: "Read all serialized properties of a component on a GameObject inside a prefab asset — no scene instance needed. Use prefabPath to target nested children (e.g. 'Body/Head').",
+    description: "Read all serialized properties of a component on a GameObject inside a prefab asset â€” no scene instance needed. Use prefabPath to target nested children (e.g. 'Body/Head').",
     inputSchema: {
       type: "object",
       properties: {
@@ -1086,7 +1087,7 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_set_property",
-    description: "Set a serialized property value on a component inside a prefab asset — no scene instance needed. Supports floats, ints, strings, bools, vectors, colors, enums.",
+    description: "Set a serialized property value on a component inside a prefab asset â€” no scene instance needed. Supports floats, ints, strings, bools, vectors, colors, enums.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1102,7 +1103,7 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_add_component",
-    description: "Add a component to a GameObject inside a prefab asset — no scene instance needed. Supports built-in types (Rigidbody, BoxCollider, etc.) and custom scripts.",
+    description: "Add a component to a GameObject inside a prefab asset â€” no scene instance needed. Supports built-in types (Rigidbody, BoxCollider, etc.) and custom scripts.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1116,7 +1117,7 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_remove_component",
-    description: "Remove a component from a GameObject inside a prefab asset — no scene instance needed.",
+    description: "Remove a component from a GameObject inside a prefab asset â€” no scene instance needed.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1131,13 +1132,13 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_set_reference",
-    description: "Wire an ObjectReference property on a component inside a prefab asset — no scene instance needed. Can reference project assets (materials, textures, prefabs, ScriptableObjects) or other GameObjects within the same prefab.",
+    description: "Wire an ObjectReference property on a component inside a prefab asset â€” no scene instance needed. Can reference project assets (materials, textures, prefabs, ScriptableObjects) or other GameObjects within the same prefab.",
     inputSchema: {
       type: "object",
       properties: {
         assetPath: { type: "string", description: "Asset path of the prefab" },
         prefabPath: { type: "string", description: "Path within the prefab hierarchy. Empty = root." },
-        componentType: { type: "string", description: "Component type (optional — searches all if omitted)" },
+        componentType: { type: "string", description: "Component type (optional â€” searches all if omitted)" },
         propertyName: { type: "string", description: "Name of the ObjectReference property to set" },
         referenceAssetPath: { type: "string", description: "Asset path of the reference target (e.g. 'Assets/Materials/Red.mat')" },
         referencePrefabPath: { type: "string", description: "Path to another GameObject within the same prefab (e.g. 'Body/Head')" },
@@ -1150,7 +1151,7 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_add_gameobject",
-    description: "Create a new child GameObject inside a prefab asset — no scene instance needed. Optionally create as a primitive (Cube, Sphere, etc.) with position/rotation/scale.",
+    description: "Create a new child GameObject inside a prefab asset â€” no scene instance needed. Optionally create as a primitive (Cube, Sphere, etc.) with position/rotation/scale.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1168,7 +1169,7 @@ export const editorTools = [
   },
   {
     name: "unity_prefab_remove_gameobject",
-    description: "Delete a child GameObject from inside a prefab asset — no scene instance needed. Cannot remove the prefab root.",
+    description: "Delete a child GameObject from inside a prefab asset â€” no scene instance needed. Cannot remove the prefab root.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1180,7 +1181,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.removePrefabAssetGameObject(params), null, 2),
   },
 
-  // ─── Prefab Variant Management ───
+  // â”€â”€â”€ Prefab Variant Management â”€â”€â”€
   {
     name: "unity_prefab_variant_info",
     description: "Get variant information for a prefab asset: whether it's a variant, its base prefab path, and list all variants derived from a base prefab. Works on both base prefabs and variants.",
@@ -1249,7 +1250,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.transferPrefabVariantOverrides(params), null, 2),
   },
 
-  // ─── Physics ───
+  // â”€â”€â”€ Physics â”€â”€â”€
   {
     name: "unity_physics_raycast",
     description: "Cast a ray in the physics world and return hit information. Supports single or all-hits mode.",
@@ -1327,7 +1328,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setGravity(params), null, 2),
   },
 
-  // ─── Lighting ───
+  // â”€â”€â”€ Lighting â”€â”€â”€
   {
     name: "unity_lighting_info",
     description: "Get info about all lights in the scene plus environment/fog settings.",
@@ -1399,7 +1400,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.createLightProbeGroup(params), null, 2),
   },
 
-  // ─── Audio ───
+  // â”€â”€â”€ Audio â”€â”€â”€
   {
     name: "unity_audio_info",
     description: "Get info about all AudioSources and AudioListeners in the scene.",
@@ -1441,7 +1442,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setGlobalAudio(params), null, 2),
   },
 
-  // ─── Tags & Layers ───
+  // â”€â”€â”€ Tags & Layers â”€â”€â”€
   {
     name: "unity_taglayer_info",
     description: "Get all tags, layers, and sorting layers in the project.",
@@ -1504,7 +1505,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setStatic(params), null, 2),
   },
 
-  // ─── Selection & Scene View ───
+  // â”€â”€â”€ Selection & Scene View â”€â”€â”€
   {
     name: "unity_selection_get",
     description: "Get the currently selected GameObjects in the Unity Editor.",
@@ -1553,9 +1554,9 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.findObjectsByType(params), null, 2),
   },
 
-  // ─── Agent Management ───
+  // â”€â”€â”€ Agent Management â”€â”€â”€
   {
-    // ─── Input Actions ───
+    // â”€â”€â”€ Input Actions â”€â”€â”€
     name: "unity_input_create",
     description: "Create a new Input Action Asset (.inputactions file) for Unity's Input System. Supports optional initial action maps.",
     inputSchema: {
@@ -1674,7 +1675,7 @@ export const editorTools = [
         compositeType: { type: "string", description: "Composite type path: '1DAxis' for pos/neg axis, '2DVector' for 4-directional (default: '1DAxis')" },
         parts: {
           type: "array",
-          description: "Composite parts — each has a 'name' (e.g. 'positive','negative','up','down','left','right') and 'path' (e.g. '<Keyboard>/w')",
+          description: "Composite parts â€” each has a 'name' (e.g. 'positive','negative','up','down','left','right') and 'path' (e.g. '<Keyboard>/w')",
           items: {
             type: "object",
             properties: {
@@ -1690,7 +1691,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.addInputCompositeBinding(params), null, 2),
   },
 
-  // ─── Assembly Definitions ───
+  // â”€â”€â”€ Assembly Definitions â”€â”€â”€
   {
     name: "unity_asmdef_create",
     description: "Create a new Assembly Definition (.asmdef) file for code containerisation and compilation optimisation. Assembly definitions split your project code into separate assemblies, reducing recompilation time and enforcing clean dependency boundaries.",
@@ -1702,7 +1703,7 @@ export const editorTools = [
         rootNamespace: { type: "string", description: "Root namespace for scripts in this assembly (e.g. 'MyGame.Runtime')" },
         references: {
           type: "array",
-          description: "Assembly references — names (e.g. 'Unity.TextMeshPro') or GUID refs (e.g. 'GUID:xxx')",
+          description: "Assembly references â€” names (e.g. 'Unity.TextMeshPro') or GUID refs (e.g. 'GUID:xxx')",
           items: { type: "string" },
         },
         includePlatforms: {
@@ -1726,7 +1727,7 @@ export const editorTools = [
         },
         defineConstraints: {
           type: "array",
-          description: "Define constraints — assembly only compiles when ALL symbols are defined (e.g. 'UNITY_EDITOR', 'ENABLE_INPUT_SYSTEM')",
+          description: "Define constraints â€” assembly only compiles when ALL symbols are defined (e.g. 'UNITY_EDITOR', 'ENABLE_INPUT_SYSTEM')",
           items: { type: "string" },
         },
       },
@@ -1856,7 +1857,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.createAssemblyRef(params), null, 2),
   },
 
-  // ─── Profiler ───
+  // â”€â”€â”€ Profiler â”€â”€â”€
   {
     name: "unity_profiler_enable",
     description: "Enable or disable the Unity Profiler. Optionally enable deep profiling for detailed call stacks (has significant performance overhead).",
@@ -1872,7 +1873,7 @@ export const editorTools = [
   },
   {
     name: "unity_profiler_stats",
-    description: "Get current rendering statistics: draw calls, batches, triangles, vertices, set-pass calls, frame time, render time, shadow casters, and more. The profiler does NOT need to be enabled for this — stats come from UnityStats which is always available.",
+    description: "Get current rendering statistics: draw calls, batches, triangles, vertices, set-pass calls, frame time, render time, shadow casters, and more. The profiler does NOT need to be enabled for this â€” stats come from UnityStats which is always available.",
     inputSchema: { type: "object", properties: {} },
     handler: async (params) => JSON.stringify(await bridge.getRenderingStats(params), null, 2),
   },
@@ -1903,7 +1904,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.analyzePerformance(params), null, 2),
   },
 
-  // ─── Frame Debugger ───
+  // â”€â”€â”€ Frame Debugger â”€â”€â”€
   {
     name: "unity_debugger_enable",
     description: "Enable or disable the Frame Debugger. When enabled, Unity pauses rendering after a specific draw call so you can inspect the GPU state. Uses reflection to access internal Unity APIs (Unity 6+).",
@@ -1935,7 +1936,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getFrameDebuggerEventDetails(params), null, 2),
   },
 
-  // ─── Memory Profiler ───
+  // â”€â”€â”€ Memory Profiler â”€â”€â”€
   {
     name: "unity_memory_status",
     description: "Check Memory Profiler status: whether the com.unity.memoryprofiler package is installed, available commands, and a quick memory summary. Always call this first before other memory profiler commands.",
@@ -1978,7 +1979,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.takeMemorySnapshot(params), null, 2),
   },
 
-  // ─── Shader Graph ───
+  // â”€â”€â”€ Shader Graph â”€â”€â”€
   {
     name: "unity_shadergraph_status",
     description: "Check which graph packages are installed: Shader Graph (com.unity.shadergraph) and Visual Effect Graph (com.unity.visualeffectgraph). Returns available commands based on installed packages.",
@@ -2129,7 +2130,7 @@ export const editorTools = [
       type: "object",
       properties: {
         path: { type: "string", description: "Asset path of the .shadergraph file" },
-        nodeId: { type: "string", description: "The node's objectId (GUID) to remove — get from get_nodes" },
+        nodeId: { type: "string", description: "The node's objectId (GUID) to remove â€” get from get_nodes" },
       },
       required: ["path", "nodeId"],
     },
@@ -2176,7 +2177,7 @@ export const editorTools = [
         path: { type: "string", description: "Asset path of the .shadergraph file" },
         nodeId: { type: "string", description: "Target node objectId" },
         propertyName: { type: "string", description: "Property name in the serialized JSON (e.g., 'm_Value', 'm_DefaultValue')" },
-        value: { description: "New value — string, number, or boolean depending on the property" },
+        value: { description: "New value â€” string, number, or boolean depending on the property" },
       },
       required: ["path", "nodeId", "propertyName", "value"],
     },
@@ -2189,7 +2190,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getShaderGraphNodeTypes(params), null, 2),
   },
 
-  // ─── Amplify Shader Editor ───
+  // â”€â”€â”€ Amplify Shader Editor â”€â”€â”€
   {
     name: "unity_amplify_status",
     description: "Check if Amplify Shader Editor is installed in the project. Returns available commands, shader count, and function count. Only works when Amplify Shader Editor is imported.",
@@ -2447,7 +2448,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.duplicateAmplifyNode(params), null, 2),
   },
 
-  // ─── Search & Find ───
+  // â”€â”€â”€ Search & Find â”€â”€â”€
   {
     name: "unity_search_by_component",
     description: "Find all GameObjects in the scene that have a specific component type. Returns their paths and instance IDs.",
@@ -2549,7 +2550,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getSceneStats(params), null, 2),
   },
 
-  // ─── Project Settings ───
+  // â”€â”€â”€ Project Settings â”€â”€â”€
   {
     name: "unity_settings_quality",
     description: "Get current quality settings: level, shadows, anti-aliasing, LOD bias, vsync, and all quality levels available.",
@@ -2636,7 +2637,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getRenderPipelineInfo(params), null, 2),
   },
 
-  // ─── Undo ───
+  // â”€â”€â”€ Undo â”€â”€â”€
   {
     name: "unity_undo",
     description: "Undo the last operation in Unity Editor.",
@@ -2667,7 +2668,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.clearUndo(params), null, 2),
   },
 
-  // ─── Screenshot / Scene View ───
+  // â”€â”€â”€ Screenshot / Scene View â”€â”€â”€
   {
     name: "unity_screenshot_game",
     description: "Capture a screenshot of the Game View. The screenshot is saved on the next frame render.",
@@ -2718,7 +2719,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setSceneViewCamera(params), null, 2),
   },
 
-  // ─── Graphics & Visuals ───
+  // â”€â”€â”€ Graphics & Visuals â”€â”€â”€
   {
     name: "unity_graphics_asset_preview",
     description:
@@ -3010,7 +3011,7 @@ export const editorTools = [
       JSON.stringify(await bridge.getLightingSummary(params), null, 2),
   },
 
-  // ─── Terrain ───
+  // â”€â”€â”€ Terrain â”€â”€â”€
   {
     name: "unity_terrain_create",
     description: "Create a new Terrain in the scene with configurable size and heightmap resolution.",
@@ -3374,7 +3375,7 @@ export const editorTools = [
       properties: {
         xBase: { type: "number", description: "Start X index in holes map" },
         yBase: { type: "number", description: "Start Y index in holes map" },
-        holes: { type: "array", description: "2D boolean array [row][col] — true = solid, false = hole", items: { type: "array", items: { type: "boolean" } } },
+        holes: { type: "array", description: "2D boolean array [row][col] â€” true = solid, false = hole", items: { type: "array", items: { type: "boolean" } } },
         name: { type: "string", description: "Terrain name (optional)" },
       },
       required: ["xBase", "yBase", "holes"],
@@ -3497,7 +3498,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getTerrainSteepness(params), null, 2),
   },
 
-  // ─── Particle System ───
+  // â”€â”€â”€ Particle System â”€â”€â”€
   {
     name: "unity_particle_create",
     description: "Create a new Particle System with optional initial settings.",
@@ -3594,7 +3595,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.particlePlayback(params), null, 2),
   },
 
-  // ─── ScriptableObject ───
+  // â”€â”€â”€ ScriptableObject â”€â”€â”€
   {
     name: "unity_scriptableobject_create",
     description: "Create a new ScriptableObject asset from a C# type. The type must already exist as a compiled script.",
@@ -3647,7 +3648,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.listScriptableObjectTypes(params), null, 2),
   },
 
-  // ─── Texture ───
+  // â”€â”€â”€ Texture â”€â”€â”€
   {
     name: "unity_texture_info",
     description: "Get texture info and import settings: size, format, compression, sprite mode, filter, wrap, mip maps, etc.",
@@ -3724,7 +3725,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setTextureAsNormalMap(params), null, 2),
   },
 
-  // ─── Navigation ───
+  // â”€â”€â”€ Navigation â”€â”€â”€
 
   {
     name: "unity_navmesh_bake",
@@ -3802,7 +3803,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setAgentDestination(params), null, 2),
   },
 
-  // ─── UI ───
+  // â”€â”€â”€ UI â”€â”€â”€
 
   {
     name: "unity_ui_create_canvas",
@@ -3872,7 +3873,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.setUIImage(params), null, 2),
   },
 
-  // ─── Package Manager ───
+  // â”€â”€â”€ Package Manager â”€â”€â”€
 
   {
     name: "unity_packages_list",
@@ -3929,7 +3930,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getPackageInfo(params), null, 2),
   },
 
-  // ─── Constraints & LOD ───
+  // â”€â”€â”€ Constraints & LOD â”€â”€â”€
 
   {
     name: "unity_constraint_add",
@@ -3984,7 +3985,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.getLODGroupInfo(params), null, 2),
   },
 
-  // ─── Prefs ───
+  // â”€â”€â”€ Prefs â”€â”€â”€
 
   {
     name: "unity_editorprefs_get",
@@ -4071,7 +4072,7 @@ export const editorTools = [
     handler: async (params) => JSON.stringify(await bridge.deleteAllPlayerPrefs(params), null, 2),
   },
 
-  // ─── Queue Management (Multi-Agent) ───
+  // â”€â”€â”€ Queue Management (Multi-Agent) â”€â”€â”€
   {
     name: "unity_queue_info",
     description:
@@ -4121,7 +4122,7 @@ export const editorTools = [
       JSON.stringify(await bridge.getAgentLog(params), null, 2),
   },
 
-  // ─── MPPM Scenario Management ───
+  // â”€â”€â”€ MPPM Scenario Management â”€â”€â”€
   // These are NOT in CORE_TOOLS, so they automatically become advanced/lazy-loaded
   // tools accessible via unity_advanced_tool, keeping the exposed tool count low.
   {
