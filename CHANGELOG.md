@@ -2,6 +2,23 @@
 
 All notable changes to this package will be documented in this file.
 
+## [2.28.0] - 2026-04-02
+
+### Added
+- **SpriteAtlas tools** — 7 new tools for Unity SpriteAtlas management (contributed by [@zaferdace](https://github.com/zaferdace)):
+  - `spriteatlas/create` — Create a new SpriteAtlas asset
+  - `spriteatlas/info` — Get SpriteAtlas details (packed sprites, settings)
+  - `spriteatlas/add` — Add sprites/folders to a SpriteAtlas
+  - `spriteatlas/remove` — Remove entries from a SpriteAtlas
+  - `spriteatlas/settings` — Configure packing, texture, and platform settings
+  - `spriteatlas/delete` — Delete a SpriteAtlas asset
+  - `spriteatlas/list` — List all SpriteAtlases in the project
+- New `spriteatlas-bridge.js` and `spriteatlas-tools.js` modules
+
+### Fixed
+- **UTF-8 encoding** — Fixed mojibake characters (corrupted em-dashes, arrows, section headers) across all comments in `unity-editor-bridge.js`; removed stale BOM
+- **package-lock.json** — Synced version field to 2.27.0
+
 ## [2.27.0] - 2026-03-25
 
 ### Added
