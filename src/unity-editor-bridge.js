@@ -281,7 +281,9 @@ export async function sendCommand(command, params = {}) {
           const ticketData = await submitToQueue(command, bodyString);
           const ticketId = ticketData.ticketId;
 
-          console.debug(`[MCP Bridge] Submitted ${command} to queue, ticket: ${ticketId}`);
+          // Log to stderr, not stdout — stdout is reserved for the MCP JSON-RPC
+          // transport and any non-JSON data there closes strict clients (e.g. Codex).
+          console.error(`[MCP Bridge] Submitted ${command} to queue, ticket: ${ticketId}`);
 
           // Poll for completion
           const result = await pollQueueStatus(ticketId);
